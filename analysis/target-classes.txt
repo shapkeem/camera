@@ -1,0 +1,57 @@
+# target-classes.txt — 추후 추가 분석이 필요한 클래스·메서드 목록 (Samsung Camera 16.5.00.55)
+# 형식: [우선순위] FQCN#method | 파일(jadx sources/ 기준):라인 | dex | 목적 | 상태
+# 우선순위: P0=첫 prototype 직결, P1=Level 2 파라미터, P2=검증/보조, P3=native
+
+## P0 — Tuning Layer 삽입 / 경로 강제
+[P0] com.samsung.android.camera.core2.processor.nodeController.composer.EncoderNodeChainComposer#create(CamCapability) | .../composer/EncoderNodeChainComposer.java:59 | classes3 | DynamicFunctionNode 삽입 위치 | 확인됨
+[P0] com.samsung.android.camera.core2.processor.nodeController.composer.EncoderNodeChainComposer#configure(NodeChainCompositionBundle) | :31 | classes3 | 삽입 노드 initialize(true) | 확인됨
+[P0] com.samsung.android.camera.core2.node.DynamicFunctionNode#<init>(FunctionConsumer) / #processPictureYuv | core2/node/DynamicFunctionNode.java | classes3 | in-place 콜백 노드 재사용 | 확인됨
+[P0] com.samsung.android.camera.core2.node.NodeChain#b(Node,Class,String,PortType) / #g / #i / #e | core2/node/NodeChain.java:194,252,274,244 | classes3 | 노드 연결·활성화 | 확인됨
+[P0] com.samsung.android.camera.core2.util.DirectBuffer#rentByteBuffer / #returnByteBuffer | core2/util/DirectBuffer.java:186,191 | classes3 | 버퍼 접근 | 확인됨
+[P0] com.samsung.android.camera.core2.container.ImageInfo#getStrideInfo / #getFormat / #getSize | core2/container/ImageInfo | classes3 | NV21 레이아웃(rowStride, heightSlice) | 실측 필요
+[P0] com.samsung.android.camera.core2.maker.ProcessingPhotoMakerBase#isExtraPostProcessCondition | core2/maker/ProcessingPhotoMakerBase.java:743 | classes3 | 경로 A→B 강제 (HEIF 설정으로 대체 가능) | 확인됨
+[P0] com.samsung.android.camera.core2.maker.RearPhotoMaker#isExtraPostProcessCondition | core2/maker/RearPhotoMaker.java:54 | classes3 | 후면 오버라이드 (UnihalMetadataUtils.b) | 조건 확인 필요
+[P0] com.samsung.android.camera.core2.maker.AutoPhotoMaker#takePicture / #takePictureInternal / #getDsExtraInfo | core2/maker/AutoPhotoMaker.java:749,686,326 | classes3 | 경로 분기, dsExtraInfo 비트 | 확인됨
+[P0] com.sec.android.app.camera.engine.capture.CaptureManagerImpl#isTakingSinglePictureAvailable | engine/capture/CaptureManagerImpl.java:256 | classes4 | SINGLE/PROCESSING 결정 | 확인됨
+[P0] com.samsung.android.camera.core2.processor.nodeController.composer.DraftEncoderNodeChainComposer#create | .../composer/DraftEncoderNodeChainComposer.java | classes3 | PPP draft look 일치 | 미분석
+
+## P1 — Level 2 파라미터 (native 알고리즘 유지)
+[P1] com.samsung.android.camera.core2.node.aiIsp.samsung.v1.SecAiIspNode#setGlobalToneMap | core2/node/aiIsp/samsung/v1/SecAiIspNode.java:326 | classes3 | GTM double[] 형식 로깅·재매핑 | 형식 미상
+[P1] com.samsung.android.camera.core2.node.superNight.mpi.v2.MpiSuperNightNode#setGlobalToneMap(CaptureMetadata) | .../MpiSuperNightNode.java:445 | classes3 | Night GTM | 형식 미상
+[P1] com.samsung.android.camera.core2.node.tetraSr.samsung.v1.SecTetraSrNode#setGlobalToneMap | :~190 | classes3 | | 형식 미상
+[P1] com.samsung.android.camera.core2.node.hexadecaSr.samsung.v1.SecHexadecaSrNode#setGlobalToneMap | :~185 | classes3 | | 형식 미상
+[P1] com.samsung.android.camera.core2.node.aiHighRes.samsung.SecAiHighResNodeBase (GTM, setLocalTmInfo) | core2/node/aiHighRes/samsung/ | classes3 | AI HighRes 톤 | 미분석
+[P1] com.samsung.android.camera.core2.node.localtm.samsung.v1.SecLocaltmNode#createLocaltmInitParam / #processPictureYuv | .../SecLocaltmNode.java:72,207 | classes3 | LTM 강도(drcRatio, ev, personalPresetIndex, personalizeParams) | native 해석 미상
+[P1] com.samsung.android.camera.core2.node.localtm.LocaltmNodeBase$LocaltmInitParam | .../LocaltmNodeBase.java:16 | classes3 | 필드 목록 | 확인됨
+[P1] com.sec.android.app.camera.engine.MakerSettingApplier#setSelfieToneMode | engine/MakerSettingApplier.java:217 | classes4 | personalPresetIndex(후면 적용 실험) | HAL 동작 미상
+[P1] com.sec.android.app.camera.shootingmode.abstraction.AbstractShootingModePresenter#setSelfieToneMode | :1843 | classes4 | 셀피 톤 프리셋 값 범위 | 미분석
+[P1] com.samsung.android.camera.core2.node.imageCodec.samsung.v2.SecImageCodecNode#encode | .../v2/SecImageCodecNode.java:135 | classes3 | SET_SUB_IMAGE_EV_FOR_GAIN_MAP, quality | 확인됨
+[P1] com.samsung.android.camera.core2.container.CodecConfiguration (quality, outputFormat, rowStride, heightSlice) | core2/container/CodecConfiguration.java | classes3 | 인코딩 품질 | 확인됨
+[P1] com.samsung.android.camera.core2.node.aiIsp.samsung.v1.SecAiIspNode#setEdgeMode / #setColorTemperature | | classes3 | AI ISP 샤픈·WB | 미분석
+
+## P2 — 검증 / 보조
+[P2] com.samsung.android.camera.core2.processor.container.NodeChainConfiguration#createSingleFrameNodeChainConfiguration / #isLocalTMNodeChainRequired / #createPreprocessingNodeChainConfiguration | .../NodeChainConfiguration.java:195-375 | classes3 | 체인 on/off 조건 로그 확인 | 확인됨
+[P2] com.samsung.android.camera.core2.processor.container.NodeChainKeyContainer (DYNAMIC_SHOT_MODE_NODE_CHAIN_KEY_MAP) | :210-375 | classes3 | dsMode→체인 | 확인됨
+[P2] com.samsung.android.camera.core2.container.DynamicShotExtraInfo (NEED_SEMANTIC_MAP=0x100) | core2/container/DynamicShotExtraInfo.java | classes3 | semantic map 소비처 추적 | 미분석
+[P2] com.samsung.android.camera.core2.maker.MakerCallbackManager (dynamicShotHint 처리) | :15080-15142 | classes3 | dsMode 수신 | 확인됨
+[P2] com.samsung.android.camera.core2.node.filter.SecFilterNode#processImage | core2/node/filter/SecFilterNode.java:73 | classes3 | 필터 경로(LTM 해제 부작용) | 확인됨
+[P2] com.samsung.android.camera.core2.node.filter.processor.FilterProcessor#h / #d | .../FilterProcessor.java:210,123 | classes3 | SemFilterBufferedProcessor 호출 | 엔진 위치 미상
+[P2] com.samsung.android.camera.core2.node.filter.processor.ColorTuneProcessor#f | .../ColorTuneProcessor.java:13 | classes3 | customcolor 문자열 | 확인됨
+[P2] com.sec.android.app.camera.engine.EffectController#getColorTuneFilterInfo / #getColorTuneParameterString / #getFilterParameter | engine/EffectController.java:267-360 | classes4 | ColorTune 값 범위(pro_colortune_tone_divide_factor) | 리소스 값 미확인
+[P2] com.samsung.android.camera.core2.node.sceneDetection.samsung.v1.SribSceneDetectionNode | core2/node/sceneDetection/samsung/v1/ | classes3 | sceneIndex 범주 | 미분석
+[P2] com.samsung.android.camera.core2.util.ImageUtils#convertFlexibleYuv420888ToPackedNV21 | core2/util/ImageUtils.java:156 | classes3 | 노드 입력 NV21 여부 | 호출 범위 확인 필요
+[P2] com.samsung.android.camera.core2.maker.MakerUtils (:122) | core2/maker/MakerUtils.java | classes3 | Image→ImageBuffer 복사 | 미분석
+[P2] com.samsung.android.camera.core2.node.NodeFeatureLoader#doLoad | core2/node/NodeFeatureLoader.java:29 | classes3 | 기기별 노드 버전 (SEC_FLOATING_FEATURE_CAMERA_CONFIG_VENDOR_LIB_INFO) | 실기기 값 필요
+[P2] com.samsung.android.camera.core2.local.vendorkey.SemCaptureRequest / SemCaptureResult | core2/local/vendorkey/ | classes3 | 벤더 키(edge.mode, colorTemperature, wbLevel, globalToneMap, faceToneWeight, drcRatio) | 확인됨
+
+## P3 — Native (부분 디스어셈블만, 필요할 때)
+[P3] lib/arm64-v8a/libnode-jni.so :: mfhdr::arcsoft::v4::ArcMfHdrNode::makeMfHdr / initHdrLib | ARC_HDR_GetDefaultParam 이후 필드 대입
+[P3] lib/arm64-v8a/libnode-jni.so :: llhdr::arcsoft::v4::ArcLlHdrNode::nativeProcess | ARC_LLHDR_GetDefaultParam(intensity, lightIntensity, saturation, sharpenIntensity) 덮어쓰기 여부
+[P3] lib/arm64-v8a/libnode-jni.so :: localtm::samsung::v1_1::SecLocaltmNode::setLocalTmAuxParam / setLocalTmFwkParam | LocaltmInitParam → wrapper 구조체 매핑
+[P3] lib/arm64-v8a/libnode-jni.so :: aiIsp::samsung::v1::SecAiIspNode::setGtmCurveInfo | GTM 커브 형식
+[P3] (기기) /system|/vendor lib64 libLocalTM_wrapper.camera.samsung.so | export·문자열(파라미터명)
+[P3] (기기) framework: com.samsung.android.camera.filter.SemFilterBufferedProcessor | 캡처 필터 엔진 위치·수식
+[P3] lib/arm64-v8a/libcamera_effect_processor_jni.so :: CustomColor 셰이더 | 프리뷰 ColorTune 수식 (확인됨, 캡처와 동일한지 확인 필요)
+
+## 분석 제외 (이번 목표와 무관)
+# UI layer/*, setting UI, watch/*, panorama/*, documentscan/*, livetranslation/*, qrengine/*, smartscan(text), video makers, glance/compose
