@@ -1,0 +1,39 @@
+name: Build APK
+
+on:
+  push:
+    paths:
+      - 'app/**'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/debug/app-debug.apk "out/TuneCamera-${GITHUB_SHA::7}.apk"
+          sha256sum out/*.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TuneCamera-debug-apk
+          path: app/out/*.apk
+          retention-days: 30
