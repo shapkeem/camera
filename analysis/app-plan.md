@@ -36,7 +36,7 @@
 | Extension 동작 중 지원 컨트롤 (줌, 초점 등) | `getAvailableCaptureRequestKeys` |
 | 일반 모드 출력 형식 (HEIC, JPEG_R, RAW, P010) | `SCALER_STREAM_CONFIGURATION_MAP` |
 | 10-bit / HDR 프로필 | `REQUEST_AVAILABLE_DYNAMIC_RANGE_PROFILES` |
-| 초고해상도 센서 모드 | `SCALER_STREAM_CONFIGURATION_MAP_MAXIMUM_RESOLUTION` |
+| 50MP 풀해상도 모드 (메인 50MP 센서는 평소 12.5MP로 합쳐서 출력) | `SCALER_STREAM_CONFIGURATION_MAP_MAXIMUM_RESOLUTION`, `SENSOR_PIXEL_MODE` |
 | 동시 카메라 (듀얼 레코딩 가능 여부) | `getConcurrentCameraIds` |
 | 고속 촬영 FPS | `getHighSpeedVideoFpsRanges` |
 | 손떨림 보정 모드 | `CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES` |
