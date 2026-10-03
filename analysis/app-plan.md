@@ -40,8 +40,21 @@
 | 동시 카메라 (듀얼 레코딩 가능 여부) | `getConcurrentCameraIds` |
 | 고속 촬영 FPS | `getHighSpeedVideoFpsRanges` |
 | 손떨림 보정 모드 | `CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES` |
+| 삼성 vendor tag 노출 여부 | `CameraCharacteristics.getKeys()` 중 `samsung.android.*` 전체 목록 |
 
 **완료 기준**: 플립7 진단 결과를 받아서 이 문서의 "확인 필요" 항목을 확정.
+
+#### 50MP 확보 경로 (위에서부터 순서대로 시도)
+APK 분석에서 삼성 앱이 쓰는 고해상도 관련 vendor tag를 확인했다. 진단 화면에서 이 키들이 서드파티 앱에 보이는지 조회한다.
+
+| 순서 | 경로 | 비고 |
+|---|---|---|
+| 1 | Android 표준 최대 해상도 모드 (`SENSOR_PIXEL_MODE_MAXIMUM_RESOLUTION`) | 열려 있으면 가장 깔끔함 |
+| 2 | 삼성 vendor tag를 공개 Camera2 API(`CaptureRequest.Key(name, type)`)로 지정 | 후보: `samsung.android.sensor.pixelMode`, `samsung.android.control.highresModeInfo`, `samsung.android.scaler.availableHighresYuvStreamConfigurations`, `availableHighresRawStreamConfigurations`, `availableRemosaicCropCapabilities`, `highresResultSize`. HAL이 기본 앱에만 허용할 수 있음 → 확인 필요 |
+| 3 | Expert RAW로 50MP DNG 촬영 → 우리 앱에서 렌더링 | APK에 `availableExpertRawHighresRawStreamConfigurations`가 있어서 Expert RAW 고해상도 경로가 존재함. 플립7 지원 여부는 확인 필요 |
+| 4 | 12.5MP 연사 여러 장 → 멀티프레임 초해상도 합성 | 항상 가능. 실제 디테일 증가는 제한적 |
+
+루팅, 시스템 영역 변경, 삼성 앱 수정은 하지 않는다.
 
 ### 2단계: 처리 파이프라인 삽입 (첫 프로토타입)
 `tuning-prototype.md`의 설계를 그대로 옮긴다.
