@@ -1,6 +1,7 @@
 package net.sourceforge.opencamera;
 
 import com.shapkeem.camera.tune.CoverScreen;
+import com.shapkeem.camera.tune.RearDisplay;
 import net.sourceforge.opencamera.cameracontroller.CameraController;
 import net.sourceforge.opencamera.cameracontroller.CameraControllerManager;
 import net.sourceforge.opencamera.cameracontroller.CameraControllerManager2;
@@ -101,6 +102,7 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -1405,6 +1407,8 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
             preview.onResume();
         }
 
+        startRearDisplay();
+
         {
             // show a toast for the camera if it's not the first for front of back facing (otherwise on multi-front/back camera
             // devices, it's easy to forget if set to a different camera)
@@ -1498,6 +1502,8 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         }
         super.onPause(); // docs say to call this before freeing other things
         this.app_is_paused = true;
+        if( rearDisplay != null )
+            rearDisplay.stop();
 
         mainUI.destroyPopup(); // important as user could change/reset settings from Android settings when pausing
         if( this.switch_multi_camera_dialog != null ) {
@@ -2049,6 +2055,57 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
         }
     }
 
+    private RearDisplay rearDisplay;
+    private TextView rearDisplayButton;
+    private boolean rearDisplayStatusShown;
+
+    /** Tune Camera: button to show the preview on the cover (rear) screen while unfolded. */
+    private void startRearDisplay() {
+        try {
+            if( rearDisplay == null ) {
+                rearDisplay = new RearDisplay(this, () -> preview.getView(), this::updateRearDisplayButton);
+                rearDisplayButton = new TextView(this);
+                rearDisplayButton.setText("후면 화면");
+                rearDisplayButton.setTextColor(0xffffffff);
+                rearDisplayButton.setTextSize(14);
+                float density = getResources().getDisplayMetrics().density;
+                int pad = (int)(10 * density);
+                rearDisplayButton.setPadding(2 * pad, pad, 2 * pad, pad);
+                android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+                bg.setColor(0x99000000);
+                bg.setCornerRadius(20 * density);
+                rearDisplayButton.setBackground(bg);
+                rearDisplayButton.setOnClickListener(v -> preview.showToast(null, rearDisplay.toggle(), true));
+                rearDisplayButton.setOnLongClickListener(v -> {
+                    preview.showToast(null, rearDisplay.statusText(), true);
+                    return true;
+                });
+                FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+                        android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL);
+                lp.topMargin = (int)(120 * density);
+                ((ViewGroup)findViewById(android.R.id.content)).addView(rearDisplayButton, lp);
+                rearDisplayButton.setVisibility(View.GONE);
+            }
+            rearDisplay.start();
+        }
+        catch(Throwable t) {
+            Log.e(TAG, "rear display setup failed", t);
+        }
+    }
+
+    private void updateRearDisplayButton() {
+        if( rearDisplayButton == null || rearDisplay == null )
+            return;
+        boolean show = rearDisplay.isSupported() || rearDisplay.isActive();
+        rearDisplayButton.setVisibility(show ? View.VISIBLE : View.GONE);
+        rearDisplayButton.setText(rearDisplay.isActive() ? "후면 화면 끄기" : "후면 화면");
+        if( !rearDisplayStatusShown ) {
+            // report once what the device offers, so we know whether the feature can work
+            rearDisplayStatusShown = true;
+            preview.showToast(null, rearDisplay.statusText(), true);
+        }
+    }
+
     /** Tune Camera: on the Flip cover screen the rear cameras face the user, so open a
      *  rear camera (rear-camera selfie with live preview on the cover screen).
      */
@@ -2064,7 +2121,7 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 if( manager.getFacing(i) == CameraController.Facing.FACING_BACK ) {
                     Log.d(TAG, "cover screen: switching to rear camera " + i);
                     applicationInterface.setCameraIdPref(i, null);
-                    preview.showToast(null, "커버 화면: 후면 카메라 셀카", true);
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> preview.showToast(null, "커버 화면: 후면 카메라 셀카", true), 800);
                     return;
                 }
             }

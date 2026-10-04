@@ -74,6 +74,10 @@ dependencies {
     // Tune Camera: on-device face detection for face lighting (model bundled in the APK)
     implementation 'com.google.mlkit:face-detection:16.1.7'
 
+    // Tune Camera: Flip cover (rear) screen while unfolded (dual screen / rear display mode)
+    implementation 'androidx.window:window:1.5.1'
+    implementation 'androidx.window:window-java:1.5.1'
+
     testImplementation 'junit:junit:4.13.2'
 
     // newer AndroidJUnit4 InstrumentedTest
