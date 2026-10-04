@@ -99,6 +99,13 @@
             />
 
         <SwitchPreference
+            android:key="preference_tune_galaxy_ui"
+            android:title="갤럭시 스타일 화면"
+            android:summary="갤럭시 기본 카메라와 비슷한 배치(모드 줄, 줌 버튼, 큰 셔터)를 씁니다. 끄면 Open Camera 원래 화면. 앱을 다시 열면 적용"
+            android:defaultValue="true"
+            />
+
+        <SwitchPreference
             android:key="preference_tune_cover_rear_selfie"
             android:title="커버 화면에서 후면 카메라 셀카"
             android:summary="폰을 접고 커버 화면에서 앱을 열면 후면 카메라로 자동 전환합니다. 설정 &gt; 유용한 기능 &gt; Labs에서 커버 화면 허용 필요"

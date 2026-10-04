@@ -2,6 +2,7 @@ package net.sourceforge.opencamera;
 
 import com.shapkeem.camera.tune.CoverScreen;
 import com.shapkeem.camera.tune.RearDisplay;
+import com.shapkeem.camera.tune.TuneUI;
 import net.sourceforge.opencamera.cameracontroller.CameraController;
 import net.sourceforge.opencamera.cameracontroller.CameraControllerManager;
 import net.sourceforge.opencamera.cameracontroller.CameraControllerManager2;
@@ -2087,16 +2088,30 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 rearDisplayButton.setVisibility(View.GONE);
             }
             rearDisplay.start();
+            if( tuneUI == null && TuneUI.isEnabled(this) && !CoverScreen.isCoverScreen(this) ) {
+                // the small cover screen keeps the compact Open Camera layout
+                tuneUI = new TuneUI(this);
+                tuneUI.install(() -> preview.showToast(null, rearDisplay.toggle(), true));
+            }
+            if( tuneUI != null )
+                new Handler(Looper.getMainLooper()).postDelayed(tuneUI::refresh, 600);
         }
         catch(Throwable t) {
             Log.e(TAG, "rear display setup failed", t);
         }
     }
 
+    private TuneUI tuneUI;
+
     private void updateRearDisplayButton() {
         if( rearDisplayButton == null || rearDisplay == null )
             return;
         boolean show = rearDisplay.isSupported() || rearDisplay.isActive();
+        if( tuneUI != null ) {
+            // the Galaxy-style top bar has its own cover screen button
+            tuneUI.setCoverState(rearDisplay.isSupported(), rearDisplay.isActive());
+            show = false;
+        }
         rearDisplayButton.setVisibility(show ? View.VISIBLE : View.GONE);
         rearDisplayButton.setText(rearDisplay.isActive() ? "후면 화면 끄기" : "후면 화면");
         if( !rearDisplayStatusShown ) {
