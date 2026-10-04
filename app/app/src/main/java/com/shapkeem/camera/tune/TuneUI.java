@@ -118,11 +118,43 @@ public class TuneUI {
         });
         hideOpenCameraControls();
         refresh();
+        root.post(zoomWatcher);
     }
+
+    private float shownZoom = -1.0f;
+
+    /** Pinch zoom changes the zoom inside Open Camera; follow it so the chips show the
+     *  current magnification, like the Galaxy camera.
+     */
+    private final Runnable zoomWatcher = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                if( preview().supportsZoom() ) {
+                    float z = preview().getZoomRatio();
+                    if( Math.abs(z - shownZoom) > 0.01f )
+                        rebuildZoomChips();
+                }
+            }
+            catch(Throwable t) {
+                Log.e(TAG, "zoom watch failed", t);
+            }
+            root.postDelayed(this, 120);
+        }
+    };
 
     /** Turns off Open Camera's on-preview text (time, free memory, ISO, camera id), once. */
     private void quietPreviewOverlays() {
         SharedPreferences p = prefs();
+        if( !p.getBoolean("tune_ui_flash_default", false) ) {
+            SharedPreferences.Editor flashOff = p.edit();
+            // like the Galaxy camera, start with flash off: flash auto adds a precapture
+            // metering step (0.3-0.8 s) to every photo
+            for(int id=0;id<8;id++)
+                flashOff.putString(PreferenceKeys.getFlashPreferenceKey(id), "flash_off");
+            flashOff.putBoolean("tune_ui_flash_default", true);
+            flashOff.apply();
+        }
         if( p.getBoolean("tune_ui_quieted", false) )
             return;
         p.edit()
@@ -243,13 +275,31 @@ public class TuneUI {
             return;
         float min = preview.getMinZoomRatio(), max = preview.getMaxZoomRatio();
         float current = preview.getZoomRatio();
+        shownZoom = current;
         float[] targets = {0.6f, 1.0f, 2.0f, 10.0f};
+        // the chip "in charge" is the largest target not above the current zoom
+        float active = -1.0f;
         for(float target : targets) {
             if( target < min - 0.05f || target > max + 0.05f )
                 continue;
-            boolean selected = Math.abs(current - target) < 0.08f * target;
+            if( target <= current + 0.03f || active < 0.0f )
+                active = target;
+        }
+        for(float target : targets) {
+            if( target < min - 0.05f || target > max + 0.05f )
+                continue;
+            boolean selected = target == active;
             TextView chip = new TextView(activity);
-            String label = target < 1.0f ? ".6" : (int)target + (selected ? "x" : "");
+            String label;
+            if( selected ) {
+                float shown = Math.round(current * 10.0f) / 10.0f;
+                label = (shown == (int)shown ? String.valueOf((int)shown) : String.valueOf(shown)) + "x";
+                if( label.startsWith("0.") )
+                    label = label.substring(1);
+            }
+            else {
+                label = target < 1.0f ? ".6" : String.valueOf((int)target);
+            }
             chip.setText(label);
             chip.setTextColor(selected ? ACCENT : Color.WHITE);
             chip.setTextSize(selected ? 13 : 12);
@@ -315,14 +365,14 @@ public class TuneUI {
 
     private Mode currentMode() {
         if( preview().isVideo() )
-            return Mode.VIDEO;
+            return Math.abs(captureRate() - 1.0f) < 1.0e-3f ? Mode.VIDEO : Mode.MORE;
         MyApplicationInterface.PhotoMode m = activity.getApplicationInterface().getPhotoMode();
         if( m == MyApplicationInterface.PhotoMode.X_Night )
             return Mode.NIGHT;
         if( m == MyApplicationInterface.PhotoMode.X_Bokeh )
             return Mode.PORTRAIT;
         if( m == MyApplicationInterface.PhotoMode.Standard )
-            return Mode.PHOTO;
+            return prefs().getBoolean(TuneProcessor.PREF_FOOD_MODE, false) ? Mode.MORE : Mode.PHOTO;
         return Mode.MORE;
     }
 
@@ -338,8 +388,7 @@ public class TuneUI {
                 setPhotoMode("preference_photo_mode_std", -1, "사진");
                 break;
             case VIDEO:
-                if( !preview().isVideo() )
-                    activity.clickedSwitchVideo(modeRow);
+                startVideo(1.0f, "동영상");
                 break;
             case MORE:
                 showMoreSheet();
@@ -355,28 +404,72 @@ public class TuneUI {
         }
         if( preview().isVideo() )
             activity.clickedSwitchVideo(modeRow);
-        prefs().edit().putString(PreferenceKeys.PhotoModePreferenceKey, value).apply();
+        prefs().edit().putString(PreferenceKeys.PhotoModePreferenceKey, value)
+                .putBoolean(TuneProcessor.PREF_FOOD_MODE, false).apply();
         activity.getApplicationInterface().getDrawPreview().updateSettings();
         activity.updateForSettings(true, label, false, true);
     }
 
     private void showMoreSheet() {
-        final String[] labels = {"프로 (수동 조절)", "얼굴 보정", "파노라마", "HDR (Open Camera)", "노이즈 감소", "연속 촬영", "설정"};
+        final String[] labels = {"프로 (수동 조절)", "슬로우 모션", "하이퍼랩스", "음식", "얼굴 보정", "파노라마", "HDR (Open Camera)", "노이즈 감소", "연속 촬영", "설정"};
         new AlertDialog.Builder(activity)
                 .setTitle("더보기")
                 .setItems(labels, (dialog, which) -> {
                     switch( which ) {
                         case 0: activity.clickedPopupSettings(modeRow); break;
-                        case 1: setPhotoMode("preference_photo_mode_x_beauty", CameraExtensionCharacteristics.EXTENSION_FACE_RETOUCH, "얼굴 보정"); break;
-                        case 2: setPhotoMode("preference_photo_mode_panorama", -1, "파노라마"); break;
-                        case 3: setPhotoMode("preference_photo_mode_hdr", -1, "HDR"); break;
-                        case 4: setPhotoMode("preference_photo_mode_noise_reduction", -1, "노이즈 감소"); break;
-                        case 5: setPhotoMode("preference_photo_mode_fast_burst", -1, "연속 촬영"); break;
-                        case 6: activity.clickedSettings(modeRow); break;
+                        case 1: startVideo(slowestRate(), "슬로우 모션"); break;
+                        case 2: startVideo(10.0f, "하이퍼랩스 (10배)"); break;
+                        case 3: startFood(); break;
+                        case 4: setPhotoMode("preference_photo_mode_x_beauty", CameraExtensionCharacteristics.EXTENSION_FACE_RETOUCH, "얼굴 보정"); break;
+                        case 5: setPhotoMode("preference_photo_mode_panorama", -1, "파노라마"); break;
+                        case 6: setPhotoMode("preference_photo_mode_hdr", -1, "HDR"); break;
+                        case 7: setPhotoMode("preference_photo_mode_noise_reduction", -1, "노이즈 감소"); break;
+                        case 8: setPhotoMode("preference_photo_mode_fast_burst", -1, "연속 촬영"); break;
+                        case 9: activity.clickedSettings(modeRow); break;
                     }
                     modeRow.postDelayed(this::refresh, 300);
                 })
                 .show();
+    }
+
+    private String captureRateKey() {
+        return PreferenceKeys.getVideoCaptureRatePreferenceKey(preview().getCameraId(), activity.getApplicationInterface().getCameraIdSPhysicalPref());
+    }
+
+    private float captureRate() {
+        return prefs().getFloat(captureRateKey(), 1.0f);
+    }
+
+    /** Slowest slow-motion rate the camera offers (1/8 with 240 fps), or 1 if none. */
+    private float slowestRate() {
+        float best = 1.0f;
+        for(float r : activity.getApplicationInterface().getSupportedVideoCaptureRates())
+            best = Math.min(best, r);
+        return best;
+    }
+
+    /** Video at a capture rate: 1 normal, below 1 slow motion, above 1 time-lapse. */
+    private void startVideo(float rate, String label) {
+        if( rate < 1.0f - 1.0e-3f && slowestRate() >= 1.0f ) {
+            preview().showToast(null, "이 카메라는 슬로우 모션을 지원하지 않습니다", true);
+            return;
+        }
+        SharedPreferences.Editor e = prefs().edit();
+        e.putFloat(captureRateKey(), rate);
+        e.putBoolean(TuneProcessor.PREF_FOOD_MODE, false);
+        if( rate > 1.0f + 1.0e-3f )
+            e.putBoolean(PreferenceKeys.VideoStabilizationPreferenceKey, true); // smoother time-lapse
+        e.apply();
+        if( !preview().isVideo() )
+            activity.clickedSwitchVideo(modeRow);
+        activity.updateForSettings(true, label, false, false);
+    }
+
+    private void startFood() {
+        setPhotoMode("preference_photo_mode_std", -1, "음식");
+        prefs().edit().putBoolean(TuneProcessor.PREF_FOOD_MODE, true).apply();
+        if( !TuneProcessor.isEnabled(activity) )
+            preview().showToast(null, "음식 색감은 설정의 '색감 튜닝'을 켜야 적용됩니다", true);
     }
 
     // ---- bottom controls ----

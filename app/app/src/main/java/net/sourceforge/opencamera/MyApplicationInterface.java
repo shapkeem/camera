@@ -680,8 +680,8 @@ public class MyApplicationInterface extends BasicApplicationInterface {
 
         if( TuneProcessor.isEnabled(main_activity) && !getJpegRPref() ) {
             // Tune Camera decodes and re-encodes the camera JPEG, so ask the camera for
-            // near-lossless input (same approach as DRO/HDR above)
-            return 100;
+            // near-lossless input; 97 rather than 100 keeps decoding fast
+            return 97;
         }
 
         return getSaveImageQualityPref();

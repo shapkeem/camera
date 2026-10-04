@@ -154,4 +154,13 @@ public class TuneProcessorTest {
         assertEquals(TuneProcessor.applyPixel(blue, plain, TuneProcessor.buildLumaLut(plain)),
                 TuneProcessor.applyPixel(blue, turned, TuneProcessor.buildLumaLut(turned)));
     }
+
+    @Test
+    public void parallelBlurMatchesSequential() {
+        int w = 97, h = 211;
+        byte [] plane = new byte[w * h];
+        java.util.Random random = new java.util.Random(1);
+        random.nextBytes(plane);
+        org.junit.Assert.assertArrayEquals(TuneProcessor.blurLuma(plane, w, h), TuneProcessor.blurLumaParallel(plane, w, h));
+    }
 }

@@ -15,10 +15,15 @@ import android.util.Log;
 
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /** Tune Camera look processing (stage 2 in analysis/app-plan.md).
  *
@@ -105,6 +110,10 @@ public class TuneProcessor {
      */
     public static final Look LOOK_IPHONE = new Look("아이폰 느낌", 0, 0, 10, 20, 13, 45, true, 5);
 
+    /** Food: richer, warmer colour and a little extra contrast, no skin or face handling. */
+    public static final Look LOOK_FOOD = new Look("음식", 3, 8, 8, 30, 30, 20, false, 0);
+    public static final String PREF_FOOD_MODE = "preference_tune_food_mode";
+
     public static class Result {
         public final Bitmap bitmap;
         public final long elapsedMs;
@@ -131,6 +140,8 @@ public class TuneProcessor {
 
     public static Look lookFromPrefs(Context context) {
         SharedPreferences prefs = prefs(context);
+        if( prefs.getBoolean(PREF_FOOD_MODE, false) )
+            return LOOK_FOOD;
         String preset = prefs.getString(PREF_PRESET, "iphone");
         switch( preset ) {
             case "brightness":
@@ -317,42 +328,135 @@ public class TuneProcessor {
         return Math.max(1.0f, Math.min(FACE_MAX_GAIN, FACE_TARGET_LUMA / meanLuma));
     }
 
+    interface Band {
+        void run(int y0, int y1);
+    }
+
+    /** Runs band.run over [0, height) split into one band per core and waits for all. */
+    static void parallelRows(int height, Band band) {
+        int threads = Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors()));
+        if( threads == 1 || height < 64 ) {
+            band.run(0, height);
+            return;
+        }
+        ExecutorService pool = Executors.newFixedThreadPool(threads);
+        try {
+            List<Future<?>> jobs = new ArrayList<>();
+            int step = (height + threads - 1) / threads;
+            for(int y0=0;y0<height;y0+=step) {
+                final int a = y0, b = Math.min(height, y0 + step);
+                jobs.add(pool.submit(() -> band.run(a, b)));
+            }
+            for(Future<?> job : jobs)
+                job.get();
+        }
+        catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+        finally {
+            pool.shutdown();
+        }
+    }
+
+    /** Same as blurLuma, spread over all cores. */
+    static byte [] blurLumaParallel(byte [] src, int width, int height) {
+        byte [] tmp = new byte[src.length];
+        byte [] dst = new byte[src.length];
+        parallelRows(height, (y0, y1) -> {
+            for(int y=y0;y<y1;y++) {
+                int row = y * width;
+                for(int x=0;x<width;x++) {
+                    int acc = 0;
+                    for(int k=-2;k<=2;k++) {
+                        int xx = Math.min(width - 1, Math.max(0, x + k));
+                        acc += BLUR_KERNEL[k + 2] * (src[row + xx] & 0xff);
+                    }
+                    tmp[row + x] = (byte)((acc + 128) >> 8);
+                }
+            }
+        });
+        parallelRows(height, (y0, y1) -> {
+            for(int y=y0;y<y1;y++) {
+                for(int x=0;x<width;x++) {
+                    int acc = 0;
+                    for(int k=-2;k<=2;k++) {
+                        int yy = Math.min(height - 1, Math.max(0, y + k));
+                        acc += BLUR_KERNEL[k + 2] * (tmp[yy * width + x] & 0xff);
+                    }
+                    dst[y * width + x] = (byte)((acc + 128) >> 8);
+                }
+            }
+        });
+        return dst;
+    }
+
     /** Applies the look in place. faces are face bounding boxes in bitmap coordinates
      *  (may be empty). Returns null if the bitmap can't be processed, in which case the
      *  caller keeps the original.
      */
     public static Result process(Bitmap bitmap, Look look, List<RectF> faces) {
+        final List<RectF> f = faces;
+        return process(bitmap, look, () -> f);
+    }
+
+    /** As above, but faces are found by faceSource on another thread while the luma plane
+     *  and blur are computed, so face detection costs no extra time.
+     */
+    public static Result process(Bitmap bitmap, Look look, Callable<List<RectF>> faceSource) {
         if( bitmap == null || !bitmap.isMutable() || bitmap.getConfig() != Bitmap.Config.ARGB_8888 ) {
             Log.w(TAG, "skip: bitmap " + (bitmap == null ? "null" : bitmap.getConfig() + " mutable=" + bitmap.isMutable()));
             return null;
         }
-        if( faces == null || !look.faceLight )
-            faces = Collections.emptyList();
         long start = System.currentTimeMillis();
-        int [] lumaLut = buildLumaLut(look);
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-        int [] row = new int[width];
+        ExecutorService faceExecutor = null;
+        Future<List<RectF>> faceJob = null;
+        if( look.faceLight && faceSource != null ) {
+            faceExecutor = Executors.newSingleThreadExecutor();
+            faceJob = faceExecutor.submit(faceSource);
+        }
+        final int [] lumaLut = buildLumaLut(look);
+        final int width = bitmap.getWidth();
+        final int height = bitmap.getHeight();
 
         // pass 1: luma plane
-        byte [] lumaPlane = new byte[width * height];
-        long sumBefore = 0;
-        for(int y=0;y<height;y++) {
-            bitmap.getPixels(row, 0, width, 0, y, width, 1);
-            for(int x=0;x<width;x++) {
-                int l = luma(row[x]);
-                lumaPlane[y * width + x] = (byte)l;
-                sumBefore += l;
+        final byte [] lumaPlane = new byte[width * height];
+        final long [] sumBefore = new long[1];
+        parallelRows(height, (y0, y1) -> {
+            int [] row = new int[width];
+            long sum = 0;
+            for(int y=y0;y<y1;y++) {
+                bitmap.getPixels(row, 0, width, 0, y, width, 1);
+                for(int x=0;x<width;x++) {
+                    int l = luma(row[x]);
+                    lumaPlane[y * width + x] = (byte)l;
+                    sum += l;
+                }
             }
+            synchronized(sumBefore) {
+                sumBefore[0] += sum;
+            }
+        });
+        final byte [] blurred = look.soften > 0 ? blurLumaParallel(lumaPlane, width, height) : null;
+
+        List<RectF> faces = Collections.emptyList();
+        if( faceJob != null ) {
+            try {
+                List<RectF> found = faceJob.get();
+                if( found != null )
+                    faces = found;
+            }
+            catch(Exception e) {
+                Log.e(TAG, "face detection failed", e);
+            }
+            faceExecutor.shutdown();
         }
-        byte [] blurred = look.soften > 0 ? blurLuma(lumaPlane, width, height) : null;
 
         // faces: measure processed luma inside each face, work out the gain
-        FaceRegion [] regions = new FaceRegion[faces.size()];
+        final FaceRegion [] regions = new FaceRegion[faces.size()];
         for(int i=0;i<faces.size();i++) {
-            RectF f = faces.get(i);
-            float cx = f.centerX(), cy = f.centerY();
-            float rx = f.width() * 0.5f, ry = f.height() * 0.6f;
+            RectF face = faces.get(i);
+            float cx = face.centerX(), cy = face.centerY();
+            float rx = face.width() * 0.5f, ry = face.height() * 0.6f;
             long sum = 0;
             int n = 0;
             int x0 = Math.max(0, (int)(cx - rx * 0.7f)), x1 = Math.min(width - 1, (int)(cx + rx * 0.7f));
@@ -368,35 +472,42 @@ public class TuneProcessor {
             }
             float mean = n > 0 ? (float)sum / n : 0.0f;
             regions[i] = new FaceRegion(cx, cy, rx, ry, faceGain(mean));
-            Log.d(TAG, "face " + f + " mean luma " + mean + " gain " + regions[i].gain);
+            Log.d(TAG, "face " + face + " mean luma " + mean + " gain " + regions[i].gain);
         }
 
         // pass 2: texture, tone, faces, colour
-        long sumAfter = 0;
-        for(int y=0;y<height;y++) {
-            bitmap.getPixels(row, 0, width, 0, y, width, 1);
-            for(int x=0;x<width;x++) {
-                int idx = y * width + x;
-                int l = lumaPlane[idx] & 0xff;
-                if( blurred != null )
-                    l = softenLuma(l, blurred[idx] & 0xff, look.soften);
-                float newLuma = lumaLut[l];
-                for(FaceRegion region : regions) {
-                    if( region.gain > 1.0f ) {
-                        float w = region.weight(x, y);
-                        if( w > 0.0f )
-                            newLuma = Math.min(255.0f, newLuma * (1.0f + (region.gain - 1.0f) * w));
+        final long [] sumAfter = new long[1];
+        parallelRows(height, (yStart, yEnd) -> {
+            int [] row = new int[width];
+            long sum = 0;
+            for(int y=yStart;y<yEnd;y++) {
+                bitmap.getPixels(row, 0, width, 0, y, width, 1);
+                for(int x=0;x<width;x++) {
+                    int idx = y * width + x;
+                    int l = lumaPlane[idx] & 0xff;
+                    if( blurred != null )
+                        l = softenLuma(l, blurred[idx] & 0xff, look.soften);
+                    float newLuma = lumaLut[l];
+                    for(FaceRegion region : regions) {
+                        if( region.gain > 1.0f ) {
+                            float w = region.weight(x, y);
+                            if( w > 0.0f )
+                                newLuma = Math.min(255.0f, newLuma * (1.0f + (region.gain - 1.0f) * w));
+                        }
                     }
+                    int out = applyPixel(row[x], look, Math.round(newLuma));
+                    sum += luma(out);
+                    row[x] = out;
                 }
-                int out = applyPixel(row[x], look, Math.round(newLuma));
-                sumAfter += luma(out);
-                row[x] = out;
+                bitmap.setPixels(row, 0, width, 0, y, width, 1);
             }
-            bitmap.setPixels(row, 0, width, 0, y, width, 1);
-        }
+            synchronized(sumAfter) {
+                sumAfter[0] += sum;
+            }
+        });
         long elapsed = System.currentTimeMillis() - start;
         double n = (double)width * height;
-        Result result = new Result(bitmap, elapsed, (float)(sumBefore / n), (float)(sumAfter / n), regions.length);
+        Result result = new Result(bitmap, elapsed, (float)(sumBefore[0] / n), (float)(sumAfter[0] / n), regions.length);
         Log.d(TAG, "processed " + width + "x" + height + " look " + look + " faces " + regions.length + " in " + elapsed + "ms, mean Y " + result.meanYBefore + " -> " + result.meanYAfter);
         return result;
     }
