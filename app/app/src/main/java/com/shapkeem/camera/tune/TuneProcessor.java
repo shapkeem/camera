@@ -60,6 +60,7 @@ public class TuneProcessor {
         public final int skinSaturation; // %, skin tones
         public final int soften; // %, how much of the finest luma detail band to remove
         public final boolean faceLight;
+        public final int skinHue; // degrees, + turns skin from red towards yellow
 
         public Look(String name, int brightness, int contrast, int warmth, int saturation) {
             this(name, brightness, contrast, warmth, saturation, saturation, 0, false);
@@ -67,7 +68,13 @@ public class TuneProcessor {
 
         public Look(String name, int brightness, int contrast, int warmth, int saturation,
                     int skinSaturation, int soften, boolean faceLight) {
+            this(name, brightness, contrast, warmth, saturation, skinSaturation, soften, faceLight, 0);
+        }
+
+        public Look(String name, int brightness, int contrast, int warmth, int saturation,
+                    int skinSaturation, int soften, boolean faceLight, int skinHue) {
             this.name = name;
+            this.skinHue = skinHue;
             this.brightness = brightness;
             this.contrast = contrast;
             this.warmth = warmth;
@@ -78,13 +85,13 @@ public class TuneProcessor {
         }
 
         boolean changesChroma() {
-            return warmth != 0 || saturation != 0 || skinSaturation != 0;
+            return warmth != 0 || saturation != 0 || skinSaturation != 0 || skinHue != 0;
         }
 
         @Override
         public String toString() {
             return name + " (밝기 " + brightness + "%, 대비 " + contrast + "%, 따뜻함 " + warmth +
-                    ", 채도 " + saturation + "%, 피부 " + skinSaturation + "%, 질감 -" + soften + "%, 얼굴 " + (faceLight ? "on" : "off") + ")";
+                    ", 채도 " + saturation + "%, 피부 " + skinSaturation + "% " + skinHue + "°, 질감 -" + soften + "%, 얼굴 " + (faceLight ? "on" : "off") + ")";
         }
     }
 
@@ -97,7 +104,7 @@ public class TuneProcessor {
      *  renders faces brighter and skin richer. Texture from fine/mid detail energy:
      *  Flip7 has 1.5-2x the finest detail of iPhone.
      */
-    public static final Look LOOK_IPHONE = new Look("아이폰 느낌", 0, 0, 10, -10, 35, 40, true);
+    public static final Look LOOK_IPHONE = new Look("아이폰 느낌", 0, 0, 10, -10, 25, 50, true, 4);
 
     public static class Result {
         public final Bitmap bitmap;
@@ -216,6 +223,15 @@ public class TuneProcessor {
         float sat = (1.0f + look.saturation / 100.0f) * (1.0f - w) + (1.0f + look.skinSaturation / 100.0f) * w;
         cb *= sat;
         cr *= sat;
+        if( look.skinHue != 0 && w > 0.0f ) {
+            // rotate skin chroma: positive angle moves red-orange skin towards yellow
+            double a = Math.toRadians(look.skinHue * w);
+            float cos = (float)Math.cos(a), sin = (float)Math.sin(a);
+            float ncb = cb * cos - cr * sin;
+            float ncr = cb * sin + cr * cos;
+            cb = ncb;
+            cr = ncr;
+        }
         // warmth: mostly along blue -> yellow (like colour temperature) with a little
         // red, scaled by brightness so shadows stay neutral
         float shift = look.warmth * 0.8f * (newLuma / 255.0f);

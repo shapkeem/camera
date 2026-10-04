@@ -140,4 +140,19 @@ public class TuneProcessorTest {
         // skin gets richer: red minus blue grows
         assertTrue((r(outSkin) - b(outSkin)) > (224 - 138));
     }
+
+    @Test
+    public void skinHueTurnsSkinTowardsYellow() {
+        TuneProcessor.Look plain = new TuneProcessor.Look("p", 0, 0, 0, 0, 0, 0, false, 0);
+        TuneProcessor.Look turned = new TuneProcessor.Look("t", 0, 0, 0, 0, 0, 0, false, 8);
+        int skin = argb(224, 172, 138);
+        int a = TuneProcessor.applyPixel(skin, plain, TuneProcessor.buildLumaLut(plain));
+        int t = TuneProcessor.applyPixel(skin, turned, TuneProcessor.buildLumaLut(turned));
+        // more yellow: green rises relative to red
+        assertTrue((g(t) - r(t)) > (g(a) - r(a)));
+        // a blue pixel is not skin and is unchanged
+        int blue = argb(40, 80, 220);
+        assertEquals(TuneProcessor.applyPixel(blue, plain, TuneProcessor.buildLumaLut(plain)),
+                TuneProcessor.applyPixel(blue, turned, TuneProcessor.buildLumaLut(turned)));
+    }
 }
