@@ -16,6 +16,8 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.shapkeem.camera.tune.TuneProcessor;
+
 import java.io.IOException;
 
 /** Methods to apply post processing to resultant images.
@@ -506,6 +508,47 @@ public class PostProcessing {
         return bitmap;
     }
 
+    /** Tune Camera: applies TuneProcessor when enabled in settings. Ultra HDR (JPEG_R)
+     *  captures are skipped so their gain map stays consistent. On any failure the
+     *  bitmap passed in is returned unchanged.
+     */
+    private Bitmap applyTuning(byte [] data, Bitmap bitmap) {
+        if( !TuneProcessor.isEnabled(main_activity) )
+            return bitmap;
+        if( main_activity.getApplicationInterface().getJpegRPref() ) {
+            Log.d(TAG, "tune: skip Ultra HDR capture");
+            return bitmap;
+        }
+        Bitmap original = bitmap;
+        try {
+            if( TuneProcessor.isAbDumpEnabled(main_activity) )
+                TuneProcessor.dumpOriginal(main_activity, data);
+
+            long decode_start = System.currentTimeMillis();
+            Bitmap work = bitmap;
+            if( work == null ) {
+                work = ImageUtils.loadBitmapWithRotation(data, true);
+            }
+            else if( !work.isMutable() || work.getConfig() != Bitmap.Config.ARGB_8888 ) {
+                work = work.copy(Bitmap.Config.ARGB_8888, true);
+            }
+            long decode_ms = System.currentTimeMillis() - decode_start;
+            TuneProcessor.Result result = TuneProcessor.process(work);
+            if( result == null )
+                return original;
+
+            final String message = String.format(java.util.Locale.US, "Tune: %dms (decode %dms), Y %.1f→%.1f",
+                    result.elapsedMs, decode_ms, result.meanYBefore, result.meanYAfter);
+            Log.d(TAG, message);
+            main_activity.runOnUiThread(() -> main_activity.getPreview().showToast(message, true));
+            return result.bitmap;
+        }
+        catch(Throwable t) {
+            Log.e(TAG, "tune: failed, keeping original", t);
+            return original;
+        }
+    }
+
     static class PostProcessBitmapResult {
         final Bitmap bitmap;
 
@@ -561,6 +604,7 @@ public class PostProcessing {
                 throw new IOException();
             }
         }
+        bitmap = applyTuning(data, bitmap);
         bitmap = stampImage(request, data, bitmap);
         if( MyDebug.LOG ) {
             Log.d(TAG, "Save single image performance: time after photostamp: " + (System.currentTimeMillis() - time_s));

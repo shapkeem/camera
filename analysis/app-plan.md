@@ -59,6 +59,14 @@ APK 분석에서 삼성 앱이 쓰는 고해상도 관련 vendor tag를 확인�
 루팅, 시스템 영역 변경, 삼성 앱 수정은 하지 않는다.
 
 ### 2단계: 처리 파이프라인 삽입 (첫 프로토타입)
+**상태: 구현 완료, 플립7 확인 대기.**
+- 구현: `com/shapkeem/camera/tune/TuneProcessor.java`, 연결 지점 `PostProcessing.applyTuning()` (`postProcessBitmap`에서 타임스탬프 찍기 직전)
+- 1차는 JPEG → 비트맵 경로에서 처리 (Open Camera 기존 저장 구조를 그대로 사용). Y만 ×1.10, RGB에 같은 차이값을 더하는 방식이라 full-range Cb/Cr이 유지됨
+- 설정: 설정 → Tune Camera → "밝기 튜닝", "A/B 비교용 원본 저장" (둘 다 기본 꺼짐)
+- A/B: 원본 JPEG를 `Pictures/TuneCamera/AB/TUNE_<시각>_A_original.jpg`로 저장, 처리본은 평소 저장 위치(DCIM/OpenCamera)
+- 계측: 처리 시간, 디코드 시간, 평균 Y 전/후를 토스트와 로그(`TuneProcessor`, `PostProcessing`)로 표시
+- 제한: 켜면 JPEG를 다시 인코딩하므로 Open Camera의 JPEG 품질 설정값으로 저장됨. YUV 직접 처리는 다음 단계(2b)
+
 `tuning-prototype.md`의 설계를 그대로 옮긴다.
 
 | 항목 | 내용 |

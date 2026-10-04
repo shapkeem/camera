@@ -5,6 +5,21 @@
         android:key="preference_category_tune"
         android:title="Tune Camera"
         >
+        <SwitchPreference
+            android:key="preference_tune_enabled"
+            android:title="밝기 튜닝 (프로토타입)"
+            android:summary="저장할 때 밝기(Y)만 10% 올립니다. 색은 그대로. Ultra HDR 촬영은 제외"
+            android:defaultValue="false"
+            />
+
+        <SwitchPreference
+            android:key="preference_tune_ab_dump"
+            android:title="A/B 비교용 원본 저장"
+            android:summary="튜닝 전 원본을 Pictures/TuneCamera/AB 폴더에 따로 저장합니다"
+            android:defaultValue="false"
+            android:dependency="preference_tune_enabled"
+            />
+
         <Preference
             android:key="preference_tune_diagnostics"
             android:title="기기 기능 진단"
