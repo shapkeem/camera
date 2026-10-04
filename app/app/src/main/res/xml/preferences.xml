@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory
+        android:key="preference_category_tune"
+        android:title="Tune Camera"
+        >
+        <Preference
+            android:key="preference_tune_diagnostics"
+            android:title="기기 기능 진단"
+            android:summary="이 기기가 서드파티 앱에 열어 둔 카메라 기능을 조회합니다"
+            android:icon="@drawable/ic_info_outline_white_48dp"
+            >
+            <intent
+                android:targetPackage="com.shapkeem.camera"
+                android:targetClass="com.shapkeem.camera.tune.DiagnosticsActivity"
+                />
+        </Preference>
+    </PreferenceCategory>
     
     <!--<PreferenceCategory
         android:key="preference_category_camera_effects"

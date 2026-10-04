@@ -75,6 +75,13 @@
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
         <activity
+            android:name="com.shapkeem.camera.tune.DiagnosticsActivity"
+            android:label="기기 기능 진단"
+            android:theme="@android:style/Theme.DeviceDefault"
+            android:exported="false"
+            >
+        </activity>
+        <activity
             android:name="net.sourceforge.opencamera.remotecontrol.DeviceScanner"
             android:label="@string/scan_ble"
             android:exported="false"
