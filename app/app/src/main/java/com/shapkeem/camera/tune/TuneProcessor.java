@@ -103,7 +103,7 @@ public class TuneProcessor {
      *  person and room: unlike Flip5/S24 in the studio, Flip7 renders clothing and skin
      *  less saturated than iPhone, so saturation goes up here.
      */
-    public static final Look LOOK_IPHONE = new Look("아이폰 느낌", 0, 0, 10, 20, 32, 30, true, 2);
+    public static final Look LOOK_IPHONE = new Look("아이폰 느낌", 0, 0, 10, 20, 13, 45, true, 5);
 
     public static class Result {
         public final Bitmap bitmap;
