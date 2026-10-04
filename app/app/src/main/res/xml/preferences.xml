@@ -8,7 +8,7 @@
         <SwitchPreference
             android:key="preference_tune_enabled"
             android:title="밝기 튜닝 (프로토타입)"
-            android:summary="저장할 때 밝기(Y)만 10% 올립니다. 색은 그대로. Ultra HDR 촬영은 제외"
+            android:summary="저장할 때 어두운 곳과 중간 톤은 약 10% 밝게, 밝은 곳은 날아가지 않게 눌러 줍니다. 색은 그대로. Ultra HDR 촬영은 제외"
             android:defaultValue="false"
             />
 

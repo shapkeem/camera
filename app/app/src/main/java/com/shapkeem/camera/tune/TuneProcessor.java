@@ -19,7 +19,8 @@ import java.util.Locale;
 
 /** First tuning prototype (stage 2 in analysis/app-plan.md).
  *
- *  Scales luma by GAIN with chroma unchanged. The bitmap is decoded from a full-range
+ *  Brightens luma with a tone curve (see buildCurveLut) with chroma unchanged.
+ *  The bitmap is decoded from a full-range
  *  (JFIF, BT.601) JPEG, so changing Y while keeping Cb/Cr fixed is the same as adding
  *  the same delta to R, G and B.
  *
@@ -32,7 +33,8 @@ public class TuneProcessor {
     public static final String PREF_AB_DUMP = "preference_tune_ab_dump";
 
     private static final float GAIN = 1.10f;
-    private static final int [] LUT = buildLut(GAIN);
+    private static final float SHOULDER = 4.0f;
+    private static final int [] LUT = buildCurveLut(GAIN, SHOULDER);
 
     public static class Result {
         public final Bitmap bitmap;
@@ -58,6 +60,21 @@ public class TuneProcessor {
 
     private static SharedPreferences prefs(Context context) {
         return PreferenceManager.getDefaultSharedPreferences(context);
+    }
+
+    /** Tone curve LUT: y = g*x / (1 + (g-1)*x^p) on x in [0,1].
+     *  Behaves like a plain gain g in shadows and mid-tones, then rolls off so that
+     *  1 maps to 1: highlights are compressed instead of clipping to white.
+     *  Monotonic as long as p < g/(g-1).
+     */
+    static int [] buildCurveLut(float gain, float shoulder) {
+        int [] lut = new int[256];
+        for(int i=0;i<256;i++) {
+            double x = i / 255.0;
+            double y = gain * x / (1.0 + (gain - 1.0) * Math.pow(x, shoulder));
+            lut[i] = Math.min(255, Math.max(0, (int)Math.round(y * 255.0)));
+        }
+        return lut;
     }
 
     /** Full-range luma LUT: out = round(in * gain), clamped to [0, 255]. */
