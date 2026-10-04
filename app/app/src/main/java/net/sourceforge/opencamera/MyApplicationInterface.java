@@ -1,5 +1,6 @@
 package net.sourceforge.opencamera;
 
+import com.shapkeem.camera.tune.TuneProcessor;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -650,6 +651,10 @@ public class MyApplicationInterface extends BasicApplicationInterface {
                 Log.d(TAG, "set lower quality for raw_only mode");
             image_quality = Math.min(image_quality, 70);
         }
+        else if( TuneProcessor.isEnabled(main_activity) && !getJpegRPref() ) {
+            // Tune Camera re-encodes the JPEG after processing: don't add visible loss
+            image_quality = Math.max(image_quality, 95);
+        }
         return image_quality;
     }
 
@@ -672,6 +677,12 @@ public class MyApplicationInterface extends BasicApplicationInterface {
 
         if( getImageFormatPref() != ImageSaver.Request.ImageFormat.STD )
             return 100;
+
+        if( TuneProcessor.isEnabled(main_activity) && !getJpegRPref() ) {
+            // Tune Camera decodes and re-encodes the camera JPEG, so ask the camera for
+            // near-lossless input (same approach as DRO/HDR above)
+            return 100;
+        }
 
         return getSaveImageQualityPref();
     }
