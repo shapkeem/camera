@@ -39,9 +39,7 @@ public class TuneProcessor {
 
     private static final float SHOULDER = 4.0f;
 
-    /** Look parameters. brightness and contrast and saturation are percentages,
-     *  warmth is -10..10.
-     */
+    /** Look parameters. */
     public static class Look {
         public final String name;
         public final int brightness;
@@ -49,6 +47,7 @@ public class TuneProcessor {
         public final int warmth;
         public final int saturation;
 
+        // brightness/contrast/saturation are percentages, warmth is -10..15
         public Look(String name, int brightness, int contrast, int warmth, int saturation) {
             this.name = name;
             this.brightness = brightness;
@@ -69,11 +68,11 @@ public class TuneProcessor {
 
     /** Brightness only, the original stage 2 prototype. */
     public static final Look LOOK_BRIGHTNESS = new Look("밝기만", 10, 0, 0, 0);
-    /** Starting point for an iPhone-like rendering, from public descriptions of Apple's
-     *  look (deeper shadows / more contrast, slightly warmer, less saturated than
-     *  Samsung, natural skin). Guessed values, meant to be adjusted by eye.
+    /** iPhone-like rendering, fitted on a Flip7 vs iPhone 12 Pro selfie pair of the same
+     *  person in the same room (analysis/look-iphone-fit.md): iPhone was brighter on
+     *  faces, more contrasty, warmer (ivory walls) and more saturated than Samsung.
      */
-    public static final Look LOOK_IPHONE = new Look("아이폰 느낌", 3, 12, 3, -8);
+    public static final Look LOOK_IPHONE = new Look("아이폰 느낌", 6, 20, 12, 18);
 
     public static class Result {
         public final Bitmap bitmap;
@@ -184,15 +183,17 @@ public class TuneProcessor {
         float cb = -0.168736f * r - 0.331264f * g + 0.5f * b;
         float cr = 0.5f * r - 0.418688f * g - 0.081312f * b;
         float sat = 1.0f + look.saturation / 100.0f;
-        // keep skin closer to the original saturation
+        // keep skin closer to the original: strongly when desaturating (skin going
+        // grey looks ill), lightly when saturating
         float w = skinWeight(cb, cr);
-        sat = sat + (1.0f - sat) * 0.7f * w;
+        sat = sat + (1.0f - sat) * (sat < 1.0f ? 0.7f : 0.2f) * w;
         cb *= sat;
         cr *= sat;
-        // warmth: towards red/yellow, scaled by brightness so shadows stay neutral
+        // warmth: mostly along blue -> yellow (like colour temperature) with a little
+        // red, scaled by brightness so shadows stay neutral
         float shift = look.warmth * 0.8f * (newLuma / 255.0f);
-        cr += shift;
         cb -= shift;
+        cr += 0.4f * shift;
         float yy = newLuma;
         int nr = Math.round(yy + 1.402f * cr);
         int ng = Math.round(yy - 0.344136f * cb - 0.714136f * cr);

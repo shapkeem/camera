@@ -41,7 +41,7 @@ public class TuneProcessorTest {
     public void lumaLutsAreMonotonicWithFixedEnds() {
         TuneProcessor.Look [] looks = {
                 TuneProcessor.LOOK_BRIGHTNESS, TuneProcessor.LOOK_IPHONE,
-                new TuneProcessor.Look("max", 20, 30, 10, 30),
+                new TuneProcessor.Look("max", 20, 30, 15, 30),
                 new TuneProcessor.Look("min", -20, -30, -10, -30),
         };
         for(TuneProcessor.Look look : looks) {

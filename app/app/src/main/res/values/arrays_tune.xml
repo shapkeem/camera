@@ -31,11 +31,11 @@
     </string-array>
 
     <string-array name="tune_warmth_entries">
-        <item>-10 (차갑게)</item><item>-6</item><item>-4</item><item>-2</item><item>0</item>
-        <item>+2</item><item>+4</item><item>+6</item><item>+10 (따뜻하게)</item>
+        <item>-10 (차갑게)</item><item>-6</item><item>-3</item><item>0</item>
+        <item>+3</item><item>+6</item><item>+9</item><item>+12</item><item>+15 (따뜻하게)</item>
     </string-array>
     <string-array name="tune_warmth_values">
-        <item>-10</item><item>-6</item><item>-4</item><item>-2</item><item>0</item>
-        <item>2</item><item>4</item><item>6</item><item>10</item>
+        <item>-10</item><item>-6</item><item>-3</item><item>0</item>
+        <item>3</item><item>6</item><item>9</item><item>12</item><item>15</item>
     </string-array>
 </resources>
