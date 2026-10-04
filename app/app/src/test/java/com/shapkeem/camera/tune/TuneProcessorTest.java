@@ -114,7 +114,7 @@ public class TuneProcessorTest {
     @Test
     public void faceGainOnlyBrightensAndIsCapped() {
         assertEquals(1.0f, TuneProcessor.faceGain(170.0f), 1e-6);
-        assertEquals(140.0f / 130.0f, TuneProcessor.faceGain(130.0f), 1e-4);
+        assertEquals(135.0f / 125.0f, TuneProcessor.faceGain(125.0f), 1e-4);
         assertEquals(TuneProcessor.FACE_MAX_GAIN, TuneProcessor.faceGain(60.0f), 1e-6);
     }
 
@@ -129,12 +129,11 @@ public class TuneProcessorTest {
     }
 
     @Test
-    public void iphoneLookWarmsAndDesaturatesNonSkinButNotSkin() {
+    public void iphoneLookWarmsGreyAndEnrichesSkin() {
         TuneProcessor.Look look = TuneProcessor.LOOK_IPHONE;
         int [] lut = TuneProcessor.buildLumaLut(look);
-        int blue = argb(40, 80, 220);
-        int outBlue = TuneProcessor.applyPixel(blue, look, lut);
-        assertTrue((b(outBlue) - r(outBlue)) < (220 - 40));
+        int grey = TuneProcessor.applyPixel(argb(200, 200, 200), look, lut);
+        assertTrue(r(grey) > b(grey));
         int skin = argb(224, 172, 138);
         int outSkin = TuneProcessor.applyPixel(skin, look, lut);
         // skin gets richer: red minus blue grows

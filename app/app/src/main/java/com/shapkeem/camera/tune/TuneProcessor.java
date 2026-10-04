@@ -47,7 +47,7 @@ public class TuneProcessor {
 
     private static final float SHOULDER = 4.0f;
     /** Faces darker than this luma (0..255) are brightened towards it. */
-    static final float FACE_TARGET_LUMA = 140.0f;
+    static final float FACE_TARGET_LUMA = 135.0f;
     static final float FACE_MAX_GAIN = 1.15f;
 
     /** Look parameters. */
@@ -97,14 +97,13 @@ public class TuneProcessor {
 
     /** Brightness only, the original stage 2 prototype. */
     public static final Look LOOK_BRIGHTNESS = new Look("밝기만", 10, 0, 0, 0);
-    /** iPhone 12 Pro-like rendering (analysis/look-iphone-fit.md). Global colour fitted on
-     *  GSMArena studio shots (iPhone 12 Pro vs Galaxy Z Flip5 / S24, good and low light,
-     *  cross-validated): warmer and about 10% less saturated, no global brightness or
-     *  contrast change. Faces and skin fitted on a Flip7 vs iPhone 12 Pro selfie: iPhone
-     *  renders faces brighter and skin richer. Texture from fine/mid detail energy:
-     *  Flip7 has 1.5-2x the finest detail of iPhone.
+    /** iPhone 12 Pro-like rendering for the Galaxy Z Flip7 (analysis/look-iphone-fit.md).
+     *  Warmth from GSMArena studio shots (iPhone 12 Pro vs Flip5 / S24) and Flip7 walls.
+     *  Saturation, skin, face and texture from Flip7 vs iPhone 12 Pro pairs of the same
+     *  person and room: unlike Flip5/S24 in the studio, Flip7 renders clothing and skin
+     *  less saturated than iPhone, so saturation goes up here.
      */
-    public static final Look LOOK_IPHONE = new Look("아이폰 느낌", 0, 0, 10, -10, 25, 50, true, 4);
+    public static final Look LOOK_IPHONE = new Look("아이폰 느낌", 0, 0, 10, 20, 32, 30, true, 2);
 
     public static class Result {
         public final Bitmap bitmap;
