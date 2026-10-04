@@ -16,6 +16,7 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.shapkeem.camera.tune.FaceFinder;
 import com.shapkeem.camera.tune.TuneProcessor;
 
 import java.io.IOException;
@@ -534,12 +535,15 @@ public class PostProcessing {
             }
             long decode_ms = System.currentTimeMillis() - decode_start;
             TuneProcessor.Look look = TuneProcessor.lookFromPrefs(main_activity);
-            TuneProcessor.Result result = TuneProcessor.process(work, look);
+            long face_start = System.currentTimeMillis();
+            java.util.List<android.graphics.RectF> faces = look.faceLight ? FaceFinder.find(work) : java.util.Collections.<android.graphics.RectF>emptyList();
+            long face_ms = System.currentTimeMillis() - face_start;
+            TuneProcessor.Result result = TuneProcessor.process(work, look, faces);
             if( result == null )
                 return original;
 
-            final String message = String.format(java.util.Locale.US, "Tune [%s]: %dms (decode %dms), Y %.1f→%.1f",
-                    look.name, result.elapsedMs, decode_ms, result.meanYBefore, result.meanYAfter);
+            final String message = String.format(java.util.Locale.US, "Tune [%s]: %dms (decode %dms, face %dms x%d), Y %.1f→%.1f",
+                    look.name, result.elapsedMs, decode_ms, face_ms, result.faces, result.meanYBefore, result.meanYAfter);
             Log.d(TAG, message);
             main_activity.runOnUiThread(() -> main_activity.getPreview().showToast(message, true));
             return result.bitmap;

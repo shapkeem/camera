@@ -8,7 +8,7 @@
         <SwitchPreference
             android:key="preference_tune_enabled"
             android:title="색감 튜닝"
-            android:summary="저장할 때 아래 프리셋으로 밝기/대비/색을 바꿉니다. 밝은 곳은 날아가지 않게 눌러 줍니다. Ultra HDR 촬영은 제외"
+            android:summary="저장할 때 아래 프리셋으로 색/질감/얼굴 밝기를 바꿉니다. Ultra HDR 촬영은 제외"
             android:defaultValue="false"
             />
 
@@ -59,6 +59,34 @@
             android:entries="@array/tune_percent30_entries"
             android:entryValues="@array/tune_percent30_values"
             android:defaultValue="0"
+            android:dependency="preference_tune_enabled"
+            />
+
+        <ListPreference
+            android:key="preference_tune_skin"
+            android:title="피부 생기 (사용자 설정)"
+            android:summary="%s"
+            android:entries="@array/tune_skin_entries"
+            android:entryValues="@array/tune_skin_values"
+            android:defaultValue="0"
+            android:dependency="preference_tune_enabled"
+            />
+
+        <ListPreference
+            android:key="preference_tune_soften"
+            android:title="질감 부드럽게 (사용자 설정)"
+            android:summary="%s"
+            android:entries="@array/tune_soften_entries"
+            android:entryValues="@array/tune_soften_values"
+            android:defaultValue="0"
+            android:dependency="preference_tune_enabled"
+            />
+
+        <SwitchPreference
+            android:key="preference_tune_face"
+            android:title="얼굴 밝게 (사용자 설정)"
+            android:summary="얼굴을 찾아서 어두우면 자연스럽게 밝힙니다"
+            android:defaultValue="false"
             android:dependency="preference_tune_enabled"
             />
 

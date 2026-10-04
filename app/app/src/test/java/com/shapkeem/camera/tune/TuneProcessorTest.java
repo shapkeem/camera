@@ -71,7 +71,7 @@ public class TuneProcessorTest {
 
     @Test
     public void desaturationReducesColourButProtectsSkin() {
-        TuneProcessor.Look look = new TuneProcessor.Look("s", 0, 0, 0, -30);
+        TuneProcessor.Look look = new TuneProcessor.Look("s", 0, 0, 0, -30, 0, 0, false);
         int [] lut = TuneProcessor.buildLumaLut(look);
         int blue = argb(40, 80, 220);
         int outBlue = TuneProcessor.applyPixel(blue, look, lut);
@@ -91,5 +91,53 @@ public class TuneProcessorTest {
         int out = TuneProcessor.applyPixel(argb(180, 180, 180), look, lut);
         assertTrue(r(out) > b(out));
         assertEquals(argb(0, 0, 0), TuneProcessor.applyPixel(argb(0, 0, 0), look, lut));
+    }
+
+    @Test
+    public void blurKeepsFlatPlaneAndSoftenKeepsFlatPixels() {
+        int w = 8, h = 6;
+        byte [] plane = new byte[w * h];
+        java.util.Arrays.fill(plane, (byte)137);
+        byte [] blurred = TuneProcessor.blurLuma(plane, w, h);
+        for(byte v : blurred)
+            assertEquals(137, v & 0xff);
+        assertEquals(137, TuneProcessor.softenLuma(137, 137, 40));
+    }
+
+    @Test
+    public void softenRemovesPartOfFineDetail() {
+        // pixel 20 above its blurred neighbourhood keeps 60% of the difference at 40%
+        assertEquals(112, TuneProcessor.softenLuma(120, 100, 40));
+        assertEquals(120, TuneProcessor.softenLuma(120, 100, 0));
+    }
+
+    @Test
+    public void faceGainOnlyBrightensAndIsCapped() {
+        assertEquals(1.0f, TuneProcessor.faceGain(170.0f), 1e-6);
+        assertEquals(140.0f / 130.0f, TuneProcessor.faceGain(130.0f), 1e-4);
+        assertEquals(TuneProcessor.FACE_MAX_GAIN, TuneProcessor.faceGain(60.0f), 1e-6);
+    }
+
+    @Test
+    public void faceWeightFeathersOutsideEllipse() {
+        TuneProcessor.FaceRegion r = new TuneProcessor.FaceRegion(100, 100, 20, 30, 1.1f);
+        assertEquals(1.0f, r.weight(100, 100), 1e-6);
+        assertEquals(1.0f, r.weight(120, 100), 1e-6);
+        float mid = r.weight(126, 100);
+        assertTrue(mid > 0.0f && mid < 1.0f);
+        assertEquals(0.0f, r.weight(140, 100), 1e-6);
+    }
+
+    @Test
+    public void iphoneLookWarmsAndDesaturatesNonSkinButNotSkin() {
+        TuneProcessor.Look look = TuneProcessor.LOOK_IPHONE;
+        int [] lut = TuneProcessor.buildLumaLut(look);
+        int blue = argb(40, 80, 220);
+        int outBlue = TuneProcessor.applyPixel(blue, look, lut);
+        assertTrue((b(outBlue) - r(outBlue)) < (220 - 40));
+        int skin = argb(224, 172, 138);
+        int outSkin = TuneProcessor.applyPixel(skin, look, lut);
+        // skin gets richer: red minus blue grows
+        assertTrue((r(outSkin) - b(outSkin)) > (224 - 138));
     }
 }

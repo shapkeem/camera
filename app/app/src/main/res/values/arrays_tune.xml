@@ -38,4 +38,18 @@
         <item>-10</item><item>-6</item><item>-3</item><item>0</item>
         <item>3</item><item>6</item><item>9</item><item>12</item><item>15</item>
     </string-array>
+
+    <string-array name="tune_skin_entries">
+        <item>0 (전체와 같게)</item><item>+10%</item><item>+20%</item><item>+30%</item><item>+40%</item>
+    </string-array>
+    <string-array name="tune_skin_values">
+        <item>0</item><item>10</item><item>20</item><item>30</item><item>40</item>
+    </string-array>
+
+    <string-array name="tune_soften_entries">
+        <item>끄기 (삼성 그대로)</item><item>약하게 (20%)</item><item>중간 (40%)</item><item>강하게 (60%)</item>
+    </string-array>
+    <string-array name="tune_soften_values">
+        <item>0</item><item>20</item><item>40</item><item>60</item>
+    </string-array>
 </resources>

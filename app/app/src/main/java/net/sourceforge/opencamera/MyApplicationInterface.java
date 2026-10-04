@@ -693,6 +693,11 @@ public class MyApplicationInterface extends BasicApplicationInterface {
             // not supported for camera extensions
             return false;
         }
+        if( TuneProcessor.isEnabled(main_activity) && TuneProcessor.lookFromPrefs(main_activity).faceLight ) {
+            // Tune Camera face lighting: also let the camera meter and focus on faces
+            // (HAL face detection + CONTROL_SCENE_MODE_FACE_PRIORITY), like iPhone does
+            return true;
+        }
         return sharedPreferences.getBoolean(PreferenceKeys.FaceDetectionPreferenceKey, false);
     }
 
