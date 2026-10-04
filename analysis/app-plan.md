@@ -24,7 +24,7 @@
 
 **완료 기준**: 플립7에 설치되고, 수정 없는 상태로 촬영과 저장이 정상 동작.
 
-### 1단계: 기기 기능 진단 화면 — 구현 완료, 플립7 결과 대기
+### 1단계: 기기 기능 진단 화면 — 완료. 결과: `flip7-diagnostics.md`
 진입: 설정(⚙️) → 맨 위 "Tune Camera" → "기기 기능 진단". 구현: `app/app/src/main/java/com/shapkeem/camera/tune/DiagnosticsActivity.java`
 
 한 번 실행하면 아래 항목을 화면에 표시하고 텍스트로 공유(복사)할 수 있게 한다.
