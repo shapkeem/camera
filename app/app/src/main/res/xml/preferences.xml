@@ -7,9 +7,59 @@
         >
         <SwitchPreference
             android:key="preference_tune_enabled"
-            android:title="밝기 튜닝 (프로토타입)"
-            android:summary="저장할 때 어두운 곳과 중간 톤은 약 10% 밝게, 밝은 곳은 날아가지 않게 눌러 줍니다. 색은 그대로. Ultra HDR 촬영은 제외"
+            android:title="색감 튜닝"
+            android:summary="저장할 때 아래 프리셋으로 밝기/대비/색을 바꿉니다. 밝은 곳은 날아가지 않게 눌러 줍니다. Ultra HDR 촬영은 제외"
             android:defaultValue="false"
+            />
+
+        <ListPreference
+            android:key="preference_tune_preset"
+            android:title="프리셋"
+            android:summary="%s"
+            android:entries="@array/tune_preset_entries"
+            android:entryValues="@array/tune_preset_values"
+            android:defaultValue="iphone"
+            android:dependency="preference_tune_enabled"
+            />
+
+        <ListPreference
+            android:key="preference_tune_brightness"
+            android:title="밝기 (사용자 설정)"
+            android:summary="%s"
+            android:entries="@array/tune_percent20_entries"
+            android:entryValues="@array/tune_percent20_values"
+            android:defaultValue="0"
+            android:dependency="preference_tune_enabled"
+            />
+
+        <ListPreference
+            android:key="preference_tune_contrast"
+            android:title="대비 (사용자 설정)"
+            android:summary="%s"
+            android:entries="@array/tune_percent30_entries"
+            android:entryValues="@array/tune_percent30_values"
+            android:defaultValue="0"
+            android:dependency="preference_tune_enabled"
+            />
+
+        <ListPreference
+            android:key="preference_tune_warmth"
+            android:title="따뜻함 (사용자 설정)"
+            android:summary="%s"
+            android:entries="@array/tune_warmth_entries"
+            android:entryValues="@array/tune_warmth_values"
+            android:defaultValue="0"
+            android:dependency="preference_tune_enabled"
+            />
+
+        <ListPreference
+            android:key="preference_tune_saturation"
+            android:title="채도 (사용자 설정)"
+            android:summary="%s"
+            android:entries="@array/tune_percent30_entries"
+            android:entryValues="@array/tune_percent30_values"
+            android:defaultValue="0"
+            android:dependency="preference_tune_enabled"
             />
 
         <SwitchPreference

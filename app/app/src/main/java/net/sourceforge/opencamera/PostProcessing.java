@@ -533,12 +533,13 @@ public class PostProcessing {
                 work = work.copy(Bitmap.Config.ARGB_8888, true);
             }
             long decode_ms = System.currentTimeMillis() - decode_start;
-            TuneProcessor.Result result = TuneProcessor.process(work);
+            TuneProcessor.Look look = TuneProcessor.lookFromPrefs(main_activity);
+            TuneProcessor.Result result = TuneProcessor.process(work, look);
             if( result == null )
                 return original;
 
-            final String message = String.format(java.util.Locale.US, "Tune: %dms (decode %dms), Y %.1f→%.1f",
-                    result.elapsedMs, decode_ms, result.meanYBefore, result.meanYAfter);
+            final String message = String.format(java.util.Locale.US, "Tune [%s]: %dms (decode %dms), Y %.1f→%.1f",
+                    look.name, result.elapsedMs, decode_ms, result.meanYBefore, result.meanYAfter);
             Log.d(TAG, message);
             main_activity.runOnUiThread(() -> main_activity.getPreview().showToast(message, true));
             return result.bitmap;
