@@ -1,5 +1,6 @@
 package net.sourceforge.opencamera;
 
+import com.shapkeem.camera.tune.CoverScreen;
 import net.sourceforge.opencamera.cameracontroller.CameraController;
 import net.sourceforge.opencamera.cameracontroller.CameraControllerManager;
 import net.sourceforge.opencamera.cameracontroller.CameraControllerManager2;
@@ -1397,6 +1398,8 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
 
         applicationInterface.reset(false); // should be called before opening the camera in preview.onResume()
 
+        useRearCameraOnCoverScreen();
+
         if( !camera_in_background ) {
             // don't restart camera if we're showing a dialog or settings
             preview.onResume();
@@ -2043,6 +2046,31 @@ public class MainActivity extends AppCompatActivity implements PreferenceFragmen
                 //preview.showToast(null, toast_string);
                 this.push_info_toast_text = toast_string;
             }
+        }
+    }
+
+    /** Tune Camera: on the Flip cover screen the rear cameras face the user, so open a
+     *  rear camera (rear-camera selfie with live preview on the cover screen).
+     */
+    private void useRearCameraOnCoverScreen() {
+        try {
+            if( !CoverScreen.isRearSelfieEnabled(this) || !CoverScreen.isCoverScreen(this) )
+                return;
+            CameraControllerManager manager = preview.getCameraControllerManager();
+            int current = applicationInterface.getCameraIdPref();
+            if( current >= 0 && current < manager.getNumberOfCameras() && manager.getFacing(current) == CameraController.Facing.FACING_BACK )
+                return;
+            for(int i=0;i<manager.getNumberOfCameras();i++) {
+                if( manager.getFacing(i) == CameraController.Facing.FACING_BACK ) {
+                    Log.d(TAG, "cover screen: switching to rear camera " + i);
+                    applicationInterface.setCameraIdPref(i, null);
+                    preview.showToast(null, "커버 화면: 후면 카메라 셀카", true);
+                    return;
+                }
+            }
+        }
+        catch(Throwable t) {
+            Log.e(TAG, "cover screen check failed", t);
         }
     }
 

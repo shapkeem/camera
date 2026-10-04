@@ -98,6 +98,13 @@
             android:dependency="preference_tune_enabled"
             />
 
+        <SwitchPreference
+            android:key="preference_tune_cover_rear_selfie"
+            android:title="커버 화면에서 후면 카메라 셀카"
+            android:summary="폰을 접고 커버 화면에서 앱을 열면 후면 카메라로 자동 전환합니다. 설정 &gt; 유용한 기능 &gt; Labs에서 커버 화면 허용 필요"
+            android:defaultValue="true"
+            />
+
         <Preference
             android:key="preference_tune_diagnostics"
             android:title="기기 기능 진단"
